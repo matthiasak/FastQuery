@@ -1,10 +1,7 @@
 function FastQuery(options){
-    // optimized class selection
-    this.selectClass = this.selectClass || (!this.isIE8 ? this.selectByClass : this.selectAny);
-
     // default
     var defaults = {
-            body: this.selectTag('body', document)[0],
+            body: document.body,
         }
         , self = this;
     options = this.extend({}, defaults, options)
@@ -13,8 +10,6 @@ function FastQuery(options){
     for(var i in options){
         this[i] = options[i];
     }
-
-    this.elements = typeof this.selector === "string" ? this.select(this.selector, this.body) : this.elements;
 }
 
 FastQuery.prototype.extend = function(){
@@ -34,16 +29,6 @@ FastQuery.prototype.extend = function(){
     return result;
 }
 
-FastQuery.prototype.isIE8 = function(){
-    var ua = navigator.userAgent.toLowerCase();
-    return ua.indexOf('msie') != -1 ? (parseInt(ua.split('msie')[1]) < 9) : false;
-}();
-
-FastQuery.prototype.isIE9 = function(){
-    var ua = navigator.userAgent.toLowerCase();
-    return ua.indexOf('msie') != -1 ? (parseInt(ua.split('msie')[1]) <= 9) : false;
-}();
-
 FastQuery.prototype.select = function(name, html_element){
     var _char = name.charAt(0);
     if(_char == '#'){
@@ -55,62 +40,45 @@ FastQuery.prototype.select = function(name, html_element){
     }
 };
 
-FastQuery.prototype.selectId = function(name, html_element)
+FastQuery.prototype.selectId = function(id, html_element)
 {
-    return html_element.getElementById ? html_element.getElementById(name): html_element.querySelector(name);
+    !html_element && (html_element = this.body);
+    return html_element.getElementById(id);
 };
 
-FastQuery.prototype.selectByClass = function(name, html_element)
+FastQuery.prototype.selectClass = function(_class, html_element)
 {
-    return html_element.getElementsByClassName(name.substr(1, name.length-1));
+    !html_element && (html_element = this.body);
+    return html_element.getElementsByClassName ? html_element.getElementsByClassName(_class.substr(1, _class.length)) : html_element.querySelectorAll(_class);
 };
 
-FastQuery.prototype.selectAny = function(name, html_element){
-    return html_element.querySelectorAll(name);
-};
-
-FastQuery.prototype.selectTag = function(name, html_element)
+FastQuery.prototype.selectTag = function(tag, html_element)
 {
-    return html_element.getElementsByTagName(name);
+    !html_element && (html_element = this.body);
+    return html_element.getElementsByTagName(tag);
 };
 
+/* Want to use events with IE8? Get the addEventListener polyfill */
 FastQuery.prototype.registerEvent = function(el, event, handler){
-    if(!this.isIE8){
-        // DOM Level 2 API
-        el.addEventListener(event, handler, false);
-        // return event;
-    } else {
-        // IE Legacy Model
-        var bound = function(){
-            return handler.apply(el, arguments);
-        };
-        el.attachEvent('on' + event, bound);
-        // return bound;
-    }
+    el.addEventListener(event, handler, false);
 }
 
+/* Want to use events with IE8? Get the addEventListener polyfill */
 FastQuery.prototype.detachEvent = function(el, event, handler){
-    if(!this.isIE8){
-        // DOM Level 2 API
-        el.removeEventListener(event, handler, false);
-    } else {
-        // IE Legacy Model
-        el.detachEvent('on' + event, handler);
-    }
+    el.removeEventListener(event, handler, false);
 }
 
 FastQuery.prototype.handlerMapping = {};
-
 FastQuery.prototype.guidKey = 'FastQuery_handler';
-
 FastQuery.prototype.nextGuid = 0;
-
 FastQuery.prototype.newGuid = function(){
     return this.nextGuid++;
 };
 
 FastQuery.prototype.delegatedHandler = function(target, handler, html_element){
     var self = this;
+
+    !html_element && (html_element = this.body);
 
     // create intercepting handler to delegate only matching events
     var interceptor = function(event){
@@ -157,7 +125,7 @@ FastQuery.prototype.off = function(event, handler, html_element) {
     var guid;
     if((guid = handler[this.guidKey]) !== undefined){
         handler = this.handlerMapping[guid] || handler;
-        delete this.handlerMapping[guid];
+        this.handlerMapping[guid] = null;
     }
 
     this.detachEvent(html_element, event, handler);
@@ -173,7 +141,7 @@ FastQuery.prototype.trigger = function(element, eventName) {
         evt.initEvent(eventName, true, true);
         return element.dispatchEvent(evt);
     }
- 
+
     // Internet Explorer
     if (element.fireEvent) {
         return element.fireEvent('on' + eventName);
@@ -196,25 +164,17 @@ FastQuery.prototype.getQueryParameter = function(name) {
 };
 
 FastQuery.prototype.addClass = function(html_element, _class) {
-    if(!this.isIE9){
-        html_element.classList.add(_class);
-    } else {
-        html_element.className += ' '+_class;
-    }
+    html_element.classList ? html_element.classList.add(_class) : (html_element.className += ' '+_class);
 }
 
 FastQuery.prototype.removeClass = function(html_element, _class) {
-    if(!this.isIE9){
-        html_element.classList.remove(_class);
-    } else {
-        html_element.className = html_element.className.replace(_class, '');
-    }
+    html_element.classList ? html_element.classList.remove(_class) : (html_element.className = html_element.className.replace(_class, ''));
 }
 
 FastQuery.prototype.hasClass = function(html_element, _class) {
-    if(!this.isIE9){
-        return html_element.classList.contains(_class);
-    } else {
-        return html_element.className.match(new RegExp("(("+_class+"(\s))|((\s)"+_class+"))")).length > 0;
-    }
+    return html_element.classList ? html_element.classList.contains(_class) : html_element.className.match(new RegExp("(("+_class+"(\s))|((\s)"+_class+"))")).length > 0;
+}
+
+FastQuery.prototype.toggleClass = function(html_element, _class) {
+    this.hasClass(html_element, _class) ? this.removeClass(html_element, _class) : this.addClass(html_element, _class);
 }
