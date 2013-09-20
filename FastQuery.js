@@ -32,9 +32,9 @@ FastQuery.prototype.extend = function(){
 FastQuery.prototype.select = function(name, html_element){
     var _char = name.charAt(0);
     if(_char == '#'){
-        return this.selectId(name.substr(1, name.length-1), html_element);
+        return this.selectId(name.substr(1, name.length), html_element);
     } else if (_char == '.') {
-        return this.selectClass(name, html_element);
+        return this.selectClass(name.substr(1, name.length), html_element);
     } else {
         return this.selectTag(name, html_element);
     }
@@ -49,7 +49,7 @@ FastQuery.prototype.selectId = function(id, html_element)
 FastQuery.prototype.selectClass = function(_class, html_element)
 {
     !html_element && (html_element = this.body);
-    return html_element.getElementsByClassName ? html_element.getElementsByClassName(_class.substr(1, _class.length)) : html_element.querySelectorAll(_class);
+    return html_element.getElementsByClassName ? html_element.getElementsByClassName(_class) : html_element.querySelectorAll(_class);
 };
 
 FastQuery.prototype.selectTag = function(tag, html_element)
@@ -172,7 +172,7 @@ FastQuery.prototype.removeClass = function(html_element, _class) {
 }
 
 FastQuery.prototype.hasClass = function(html_element, _class) {
-    return html_element.classList ? html_element.classList.contains(_class) : html_element.className.match(new RegExp("(("+_class+"(\s))|((\s)"+_class+"))")).length > 0;
+    return html_element.classList ? html_element.classList.contains(_class) : (html_element.className.match(new RegExp("(("+_class+"(\s))|((\s)"+_class+"))")).length > 0);
 }
 
 FastQuery.prototype.toggleClass = function(html_element, _class) {
