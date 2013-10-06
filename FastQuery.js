@@ -178,3 +178,14 @@ FastQuery.prototype.hasClass = function(html_element, _class) {
 FastQuery.prototype.toggleClass = function(html_element, _class) {
     this.hasClass(html_element, _class) ? this.removeClass(html_element, _class) : this.addClass(html_element, _class);
 }
+
+FastQuery.prototype.setStyles = function(html_element /*, styleKey1, styleVal1, styleKey2, styleVal2, ... */) {
+    if(!html_element) return;
+    var args = [].slice.call(arguments);
+    args.shift();
+    requestAnimationFrame(function(){
+        for(var i = 0, len = args.length; i < len; i += 2){
+            html_element.style[args[i]] = args[i+1];
+        }
+    })
+};
