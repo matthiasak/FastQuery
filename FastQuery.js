@@ -4,29 +4,12 @@ function FastQuery(options){
             body: document.body,
         }
         , self = this;
-    options = this.extend({}, defaults, options)
+    options = extend({}, defaults, options)
 
     // for each option, set it as a local variable under this instance
     for(var i in options){
         this[i] = options[i];
     }
-}
-
-FastQuery.prototype.extend = function(){
-    var args = [].slice.call(arguments);
-    var result = args[0] || {};
-    var numArgs = args.length;
-
-    for(var i = 1; i < numArgs; i++){
-        var arg = args[i];
-        for(var key in arg){
-            if(arg.hasOwnProperty(key)){
-                result[key] = arg[key];
-            }
-        }
-    }
-
-    return result;
 }
 
 FastQuery.prototype.select = function(name, html_element){
@@ -106,16 +89,22 @@ FastQuery.prototype.delegatedHandler = function(target, handler, html_element){
     return interceptor;
 }
 
-FastQuery.prototype.on = function(event, target, handler, html_element) {
+FastQuery.prototype.on = function(event, target, handler, html_element) { // (event name, [target selector], callback, html element)
     var numArgs = [].slice.call(arguments).length
         , html_element = numArgs === 4 ? html_element : handler
-        , handler = numArgs === 4 ? handler : target;
+        , handler = numArgs === 4 ? handler : target
+        , events = event.split(' ')
+        , self = this;
 
-    if(numArgs === 3){
-        this.registerEvent(html_element, event, handler);
-    } else if(numArgs === 4){
-        var delegate = this.delegatedHandler(target, handler, html_element);
-        this.registerEvent(html_element, event, delegate);
+    for(var i = 0, len = events.length; i < len; i++){
+        (function(event){
+            if(numArgs === 3){
+                self.registerEvent(html_element, event, handler);
+            } else if(numArgs === 4){
+                var delegate = self.delegatedHandler(target, handler, html_element);
+                self.registerEvent(html_element, event, delegate);
+            }
+        })(events[i]);
     }
 
     return this;
@@ -189,3 +178,54 @@ FastQuery.prototype.setStyles = function(html_element /*, styleKey1, styleVal1, 
         }
     })
 };
+
+FastQuery.prototype.domOperations = {
+    reads: [],
+    writes: [],
+    current: "read" // or "write"
+};
+
+FastQuery.prototype.read = function(cb) {
+    this.domOperations.reads.push(cb);
+    var self = this;
+    requestAnimationFrame(function(){
+        self.processDomOperations();
+    });
+};
+
+FastQuery.prototype.write = function(cb) {
+    this.domOperations.writes.push(cb);
+    var self = this;
+    requestAnimationFrame(function(){
+        self.processDomOperations();
+    });
+};
+
+FastQuery.prototype.processDomOperations = function() {
+    var key = "reads";
+    !this.domOperations[key].length && (key = "writes");
+
+    var cb = this.domOperations[key].shift();
+    cb && typeof cb === "function" && cb();
+}
+
+if(!window.extend) {
+    function extend(){
+        var args = [].slice.call(arguments);
+        var result = args[0] || {};
+        var numArgs = args.length;
+
+        for(var i = 1; i < numArgs; i++){
+            var arg = args[i];
+            for(var key in arg){
+                if(arg.hasOwnProperty(key)){
+                    result[key] = arg[key];
+                }
+            }
+        }
+
+        return result;
+    }
+}
+
+window.$ = new FastQuery();
